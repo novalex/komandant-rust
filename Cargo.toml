@@ -1,0 +1,8 @@
+[package]
+name = "komandant"
+version = "0.1.0"
+authors = ["Alex Nitu <novalex.inc@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+iced = "0.1"
