@@ -1,25 +1,25 @@
-use std::process::Command;
-use std::io::{self, Write};
 use iced::{
-    Align,
-    Button,
-    button,
-    Column,
-    Element,
-    Row,
-    Sandbox,
-    Settings,
-    Text,
+    button, text_input, Align, Button, Column, Element, Row, Sandbox, Settings, Text, TextInput,
 };
+use std::io::{self, Write};
+use std::process::Command;
 
-pub fn main() {
+fn main() {
     App::run(Settings::default())
 }
 
 #[derive(Default)]
-pub struct App {
+struct App {
     // fields: Fields,
+    command: String,
+    command_input: text_input::State,
     execute_button: button::State,
+}
+
+#[derive(Debug, Clone)]
+enum Message {
+    ButtonPressed,
+    CommandChanged(String),
 }
 
 impl Sandbox for App {
@@ -36,14 +36,23 @@ impl Sandbox for App {
     fn update(&mut self, event: Message) {
         match event {
             Message::ButtonPressed => {
-                // self.fields.parse();
-                execute_command( "echo All systems go!" );
+                execute_command(&self.command);
+            }
+            Message::CommandChanged(command) => {
+                self.command = command;
             }
         }
     }
 
     fn view(&mut self) -> Element<Message> {
-        let mut controls = Row::new()
+        let fields = Row::new()
+            .padding(20)
+            .push(
+                TextInput::new(&mut self.command_input, "Type command here...", &self.command, Message::CommandChanged)
+            );
+
+        let controls = Row::new()
+            .padding(20)
             .push(
                 Button::new(&mut self.execute_button, Text::new("Execute"))
                     .on_press(Message::ButtonPressed)
@@ -51,16 +60,11 @@ impl Sandbox for App {
             );
 
         Column::new()
-            .padding(20)
             .align_items(Align::Center)
-            .push( controls )
+            .push(fields)
+            .push(controls)
             .into()
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum Message {
-    ButtonPressed,
 }
 
 fn execute_command(command: &str) {
@@ -72,9 +76,9 @@ fn execute_command(command: &str) {
     }
 
     let output = Command::new(shell)
-            .args(&[arg, command])
-            .output()
-            .expect("failed to execute process");
+        .args(&[arg, command])
+        .output()
+        .expect("failed to execute process");
 
     println!("status: {}", output.status);
     io::stdout().write_all(&output.stdout).unwrap();
