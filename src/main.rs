@@ -37,7 +37,7 @@ impl Sandbox for App {
         match event {
             Message::ButtonPressed => {
                 // self.fields.parse();
-                println!( "All systems go!" );
+                execute_command( "echo All systems go!" );
             }
         }
     }
@@ -61,6 +61,26 @@ impl Sandbox for App {
 #[derive(Debug, Clone)]
 pub enum Message {
     ButtonPressed,
+}
+
+fn execute_command(command: &str) {
+    let mut shell = "sh";
+    let mut arg = "-c";
+    if cfg!(target_os = "windows") {
+        shell = "cmd";
+        arg = "/C";
+    }
+
+    let output = Command::new(shell)
+            .args(&[arg, command])
+            .output()
+            .expect("failed to execute process");
+
+    println!("status: {}", output.status);
+    io::stdout().write_all(&output.stdout).unwrap();
+    io::stderr().write_all(&output.stderr).unwrap();
+
+    assert!(output.status.success());
 }
 
 mod style {
@@ -94,24 +114,3 @@ mod style {
         }
     }
 }
-
-// fn main() {
-//     let output = if cfg!(target_os = "windows") {
-//         Command::new("cmd")
-//                 .args(&["/C", "echo hello"])
-//                 .output()
-//                 .expect("failed to execute process")
-//     } else {
-//         Command::new("sh")
-//                 .arg("-c")
-//                 .arg("echo hello")
-//                 .output()
-//                 .expect("failed to execute process")
-//     };
-
-//     println!("status: {}", output.status);
-//     io::stdout().write_all(&output.stdout).unwrap();
-//     io::stderr().write_all(&output.stderr).unwrap();
-
-//     assert!(output.status.success());
-// }
