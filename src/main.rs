@@ -14,6 +14,7 @@ struct App {
     command: String,
     command_input: text_input::State,
     execute_button: button::State,
+    output_text: String,
 }
 
 #[derive(Debug, Clone)]
@@ -36,7 +37,8 @@ impl Sandbox for App {
     fn update(&mut self, event: Message) {
         match event {
             Message::ButtonPressed => {
-                execute_command(&self.command);
+                let output = execute_command(&self.command);
+                handle_output(self, output);
             }
             Message::CommandChanged(command) => {
                 self.command = command;
@@ -59,15 +61,19 @@ impl Sandbox for App {
                     .style(style::Button::Primary),
             );
 
+        let output = Text::new(&self.output_text)
+            .size(16);
+
         Column::new()
             .align_items(Align::Center)
             .push(fields)
             .push(controls)
+            .push(output)
             .into()
     }
 }
 
-fn execute_command(command: &str) {
+fn execute_command(command: &str) -> std::process::Output {
     let mut shell = "sh";
     let mut arg = "-c";
     if cfg!(target_os = "windows") {
@@ -80,11 +86,23 @@ fn execute_command(command: &str) {
         .output()
         .expect("failed to execute process");
 
-    println!("status: {}", output.status);
-    io::stdout().write_all(&output.stdout).unwrap();
-    io::stderr().write_all(&output.stderr).unwrap();
+    output
+}
 
-    assert!(output.status.success());
+fn handle_output(app: &mut App, output: std::process::Output) {
+    app.output_text = format!("Status: {}\n\n", output.status);
+    if output.stdout.len() > 0 {
+        let out_string = format!("Output:\n{}\n\n", String::from_utf8(output.stdout).unwrap());
+        app.output_text.push_str(out_string.as_str());
+    }
+    if output.stderr.len() > 0 {
+        let err_string = format!("Errors:\n{}\n\n", String::from_utf8(output.stderr).unwrap());
+        app.output_text.push_str(err_string.as_str());
+    }
+    if !output.status.success() {
+        app.output_text.push_str("Command was not successful");
+        return;
+    }
 }
 
 mod style {
@@ -92,7 +110,6 @@ mod style {
 
     pub enum Button {
         Primary,
-        Secondary,
     }
 
     impl button::StyleSheet for Button {
@@ -100,7 +117,6 @@ mod style {
             button::Style {
                 background: Some(Background::Color(match self {
                     Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
-                    Button::Secondary => Color::from_rgb(0.5, 0.5, 0.5),
                 })),
                 border_radius: 4,
                 shadow_offset: Vector::new(1.0, 1.0),
