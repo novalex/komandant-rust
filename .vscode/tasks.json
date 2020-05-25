@@ -8,7 +8,16 @@
 				"$rustc"
 			],
 			"group": "build",
-			"label": "Rust: cargo build - Komandant"
+			"label": "Build"
+		},
+		{
+			"type": "shell",
+			"command": "cargo watch -x run",
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "build",
+			"label": "Watch"
 		}
 	]
 }
