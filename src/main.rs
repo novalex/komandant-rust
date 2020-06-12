@@ -1,7 +1,7 @@
 use iced::{
-    button, text_input, Align, Button, Column, Element, Row, Sandbox, Settings, Text, TextInput,
+    button, scrollable, text_input, Align, Button, Column, Container, Element, Length, Row, Sandbox, Scrollable, Settings, Text,
+    TextInput,
 };
-use std::io::{self, Write};
 use std::process::Command;
 
 fn main() {
@@ -15,6 +15,7 @@ struct App {
     command_input: text_input::State,
     execute_button: button::State,
     output_text: String,
+    scroll: scrollable::State,
 }
 
 #[derive(Debug, Clone)]
@@ -47,29 +48,42 @@ impl Sandbox for App {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let fields = Row::new()
-            .padding(20)
-            .push(
-                TextInput::new(&mut self.command_input, "Type command here...", &self.command, Message::CommandChanged)
-            );
+        let fields = Row::new().padding(20).push(
+            TextInput::new(
+                &mut self.command_input,
+                "Type command here...",
+                &self.command,
+                Message::CommandChanged,
+            )
+            .padding(12),
+        );
 
-        let controls = Row::new()
-            .padding(20)
-            .push(
-                Button::new(&mut self.execute_button, Text::new("Execute"))
-                    .on_press(Message::ButtonPressed)
-                    .style(style::Button::Primary),
-            );
+        let controls = Row::new().padding(20).push(
+            Button::new(&mut self.execute_button, Text::new("Execute"))
+                .on_press(Message::ButtonPressed)
+                .style(style::Button::Primary),
+        );
 
-        let output = Text::new(&self.output_text)
-            .size(16);
+        let output = Row::new().padding(20).push(
+            Text::new(&self.output_text).size(16)
+        );
 
-        Column::new()
+        let content = Column::new()
             .align_items(Align::Center)
             .push(fields)
             .push(controls)
-            .push(output)
-            .into()
+            .push(output);
+
+        Container::new(
+            Scrollable::new(&mut self.scroll)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .push(content)
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .style(style::Container::Dark)
+        .into()
     }
 }
 
@@ -106,7 +120,28 @@ fn handle_output(app: &mut App, output: std::process::Output) {
 }
 
 mod style {
-    use iced::{button, Background, Color, Vector};
+    use iced::{button, container, Background, Color, Vector};
+
+    pub enum Container {
+        Light,
+        Dark,
+    }
+
+    impl container::StyleSheet for Container {
+        fn style(&self) -> container::Style {
+            container::Style {
+                background: Some(Background::Color(match self {
+                    Container::Light => Color::WHITE,
+                    Container::Dark => Color::from_rgb(0.1, 0.1, 0.1),
+                })),
+                text_color: Some(match self {
+                    Container::Light => Color::BLACK,
+                    Container::Dark => Color::WHITE,
+                }),
+                ..container::Style::default()
+            }
+        }
+    }
 
     pub enum Button {
         Primary,
@@ -120,7 +155,7 @@ mod style {
                 })),
                 border_radius: 4,
                 shadow_offset: Vector::new(1.0, 1.0),
-                text_color: Color::from_rgb8(0xEE, 0xEE, 0xEE),
+                text_color: Color::from_rgb(0.9, 0.9, 0.9),
                 ..button::Style::default()
             }
         }
